@@ -29,7 +29,7 @@ public class Listen  implements UpdatesListener{
                     String result = formatJson(lookup(message));
                     response = Main.bot.execute(new SendMessage(chatId, result));
                 }else{
-                    response = Main.bot.execute(new SendMessage(chatId, "The format incorect, please input valid ip address"));
+                    response = Main.bot.execute(new SendMessage(chatId, "The format incorect, please input valid ip address\nExamlple : 34.120.22.1"));
                 }
                 System.out.println(response.isOk());
             }
