@@ -2,6 +2,7 @@ package org.ip_lookup.callbaks;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.request.SendMessage;
@@ -31,7 +32,13 @@ public class Listen  implements UpdatesListener{
                 String message = update.message().text();
                 SendResponse response;
                 if(validation(message)){
-                    String result = formatJson(lookup(message));
+                    String result = null;
+                    try {
+//                        result = formatJson(lookupv2(message));
+                          result = lookupv2(message);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                     response = Main.bot.execute(new SendMessage(chatId, result));
                 }else{
                     response = Main.bot.execute(new SendMessage(chatId, "The format incorect, please input valid ip address\nExamlple : 34.120.22.1"));
@@ -40,6 +47,17 @@ public class Listen  implements UpdatesListener{
             }
         }
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
+    }
+    public String lookupv2 (String ipAddress) throws IOException {
+        File dbAsn = new File("geolite2-db/GeoLite2-ASN.mmdb");
+
+        try(DatabaseReader reader = new DatabaseReader.Builder(dbAsn).build()){
+            InetAddress ipAddr = InetAddress.getByName(ipAddress);
+            AsnResponse response = reader.asn(ipAddr);
+            return response.toJson();
+        } catch (GeoIp2Exception e) {
+            throw new RuntimeException(e);
+        }
     }
     public String lookup(String ipAdress) {
         HttpClient client = HttpClient.newHttpClient();
