@@ -3,8 +3,11 @@ package org.ip_lookup.callbaks;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
+import com.maxmind.geoip2.model.CityResponse;
+import com.maxmind.geoip2.model.CountryResponse;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.Update;
+import com.pengrad.telegrambot.model.request.ParseMode;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.response.SendResponse;
 import org.ip_lookup.Main;
@@ -16,6 +19,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.maxmind.geoip2.DatabaseReader;
@@ -35,11 +39,13 @@ public class Listen  implements UpdatesListener{
                     String result = null;
                     try {
 //                        result = formatJson(lookupv2(message));
-                          result = lookupv2(message);
+                          result = formatJson(lookupv2(message));
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
-                    response = Main.bot.execute(new SendMessage(chatId, result));
+                    response = Main.bot.execute(
+                            new SendMessage(chatId, result)
+                    );
                 }else{
                     response = Main.bot.execute(new SendMessage(chatId, "The format incorect, please input valid ip address\nExamlple : 34.120.22.1"));
                 }
@@ -50,14 +56,36 @@ public class Listen  implements UpdatesListener{
     }
     public String lookupv2 (String ipAddress) throws IOException {
         File dbAsn = new File("geolite2-db/GeoLite2-ASN.mmdb");
+        File dbCity = new File("geolite2-db/GeoLite2-City.mmdb");
+        File dbCountry = new File("geolite2-db/GeoLite2-Country.mmdb");
+
+        ArrayList<String> datas = new ArrayList<>();
 
         try(DatabaseReader reader = new DatabaseReader.Builder(dbAsn).build()){
             InetAddress ipAddr = InetAddress.getByName(ipAddress);
             AsnResponse response = reader.asn(ipAddr);
-            return response.toJson();
+            datas.add(response.toJson());
         } catch (GeoIp2Exception e) {
             throw new RuntimeException(e);
         }
+
+        try(DatabaseReader reader = new DatabaseReader.Builder(dbCity).build()){
+            InetAddress ipAddr = InetAddress.getByName(ipAddress);
+            CityResponse response = reader.city(ipAddr);
+            datas.add(response.toJson());
+        } catch (GeoIp2Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        try(DatabaseReader reader = new DatabaseReader.Builder(dbCountry).build()){
+            InetAddress ipAddr = InetAddress.getByName(ipAddress);
+            CountryResponse response = reader.country(ipAddr);
+            datas.add(response.toJson());
+        } catch (GeoIp2Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        return datas.toString();
     }
     public String lookup(String ipAdress) {
         HttpClient client = HttpClient.newHttpClient();
@@ -124,58 +152,83 @@ public class Listen  implements UpdatesListener{
 
         return true;
     }
+
     public static String formatJson(String json) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(json);
-            JsonNode data = root.get("data");
-            JsonNode cls = data.get("classification");
 
-            return "🌐 IP Lookup Result\n\n"
+            JsonNode asnNode = root.get(0);
+            JsonNode cityNode = root.get(1);
+            JsonNode countryNode = root.get(2);
 
-                    + "📌 Basic Info\n"
-                    + "IP          : " + getSafe(data, "query") + "\n"
-                    + "Status      : " + getSafe(data, "status") + "\n"
-                    + "Message     : " + getSafe(root, "message") + "\n\n"
+            JsonNode city = cityNode.get("city");
+            JsonNode country = cityNode.get("country");
+            JsonNode continent = cityNode.get("continent");
+            JsonNode location = cityNode.get("location");
+            JsonNode postal = cityNode.get("postal");
+            JsonNode traits = cityNode.get("traits");
+            JsonNode registered = cityNode.get("registered_country");
 
-                    + "🌍 Location\n"
-                    + "Benua       : " + getSafe(data, "continent") + " (" + getSafe(data, "continentCode") + ")\n"
-                    + "Negara      : " + getSafe(data, "country") + " (" + getSafe(data, "countryCode") + ")\n"
-                    + "Region      : " + getSafe(data, "regionName") + " (" + getSafe(data, "region") + ")\n"
-                    + "Kota        : " + getSafe(data, "city") + "\n"
-                    + "Kode Pos    : " + getSafe(data, "zip") + "\n\n"
+            // subdivision
+            String regionName = "Unknown";
+            String regionCode = "Unknown";
+            if (cityNode.has("subdivisions") && cityNode.get("subdivisions").size() > 0) {
+                JsonNode sub = cityNode.get("subdivisions").get(0);
+                regionName = getSafe(sub.get("names"), "en");
+                regionCode = getSafe(sub, "iso_code");
+            }
 
-                    + "📍 Coordinate\n"
-                    + "Latitude    : " + getSafe(data, "lat") + "\n"
-                    + "Longitude   : " + getSafe(data, "lon") + "\n"
-                    + "Timezone    : " + getSafe(data, "timezone") + "\n\n"
+            return "🌐 *IP Lookup Result*\n\n"
 
-                    + "🏢 Network\n"
-                    + "ISP         : " + getSafe(data, "isp") + "\n"
-                    + "Org         : " + getSafe(data, "org") + "\n"
-                    + "AS Number   : " + getSafe(data, "as_number") + "\n"
-                    + "AS Name     : " + getSafe(data, "asname") + "\n"
-                    + "AS Full     : " + getSafe(data, "as") + "\n\n"
+                    + "📌 *Basic Info*\n"
+                    + "IP              : " + getSafe(asnNode, "ip_address") + "\n"
+                    + "Network         : " + getSafe(asnNode, "network") + "\n"
+                    + "ASN             : " + getSafe(asnNode, "autonomous_system_number") + "\n"
+                    + "Organization    : " + getSafe(asnNode, "autonomous_system_organization") + "\n\n"
 
-                    + "🧠 Classification\n"
-                    + "ASN         : " + getSafe(cls, "as_number") + "\n"
-                    + "Nama AS     : " + getSafe(cls, "as_name") + "\n"
-                    + "Negara AS   : " + getSafe(cls, "country_code") + "\n"
-                    + "ROM         : " + getSafe(cls, "rom") + "\n\n"
+                    + "🌍 *Location*\n"
+                    + "Continent       : " + getSafe(continent.get("names"), "en") + " (" + getSafe(continent, "code") + ")\n"
+                    + "Country         : " + getSafe(country.get("names"), "en") + " (" + getSafe(country, "iso_code") + ")\n"
+                    + "Registered Ctry : " + getSafe(registered.get("names"), "en") + "\n"
+                    + "Region          : " + regionName + " (" + regionCode + ")\n"
+                    + "City            : " + getSafe(city.get("names"), "en") + "\n"
+                    + "Postal Code     : " + getSafe(postal, "code") + "\n\n"
 
-                    + "🔎 Meta\n"
-                    + "HTTP Code   : " + getSafe(root, "status") + "\n"
-                    + "Error       : " + getSafe(root, "error") + "\n"
-                    + "Reference   : " + getSafe(root, "reference");
+                    + "📍 *Coordinates*\n"
+                    + "Latitude        : " + getSafe(location, "latitude") + "\n"
+                    + "Longitude       : " + getSafe(location, "longitude") + "\n"
+                    + "Accuracy Radius : " + getSafe(location, "accuracy_radius") + "\n"
+                    + "Metro Code      : " + getSafe(location, "metro_code") + "\n"
+                    + "Timezone        : " + getSafe(location, "time_zone") + "\n\n"
+
+                    + "🧠 *Traits (FULL)*\n"
+                    + "IP              : " + getSafe(traits, "ip_address") + "\n"
+                    + "Network         : " + getSafe(traits, "network") + "\n"
+                    + "Anonymous       : " + getSafe(traits, "is_anonymous") + "\n"
+                    + "Anonymous Proxy : " + getSafe(traits, "is_anonymous_proxy") + "\n"
+                    + "Anonymous VPN   : " + getSafe(traits, "is_anonymous_vpn") + "\n"
+                    + "Anycast         : " + getSafe(traits, "is_anycast") + "\n"
+                    + "Hosting         : " + getSafe(traits, "is_hosting_provider") + "\n"
+                    + "Legit Proxy     : " + getSafe(traits, "is_legitimate_proxy") + "\n"
+                    + "Public Proxy    : " + getSafe(traits, "is_public_proxy") + "\n"
+                    + "Residential     : " + getSafe(traits, "is_residential_proxy") + "\n"
+                    + "Satellite       : " + getSafe(traits, "is_satellite_provider") + "\n"
+                    + "Tor Exit        : " + getSafe(traits, "is_tor_exit_node") + "\n\n"
+
+                    + "🔎 *Geo Metadata*\n"
+                    + "City GeoID      : " + getSafe(city, "geoname_id") + "\n"
+                    + "Country GeoID   : " + getSafe(country, "geoname_id") + "\n"
+                    + "Continent GeoID : " + getSafe(continent, "geoname_id") + "\n";
 
         } catch (Exception e) {
             return "❌ Gagal parsing JSON";
         }
     }
 
-    private static String getSafe(JsonNode node, String field) {
-        if (node == null || !node.has(field) || node.get(field).isNull()) {
-            return "-";
+    public static String getSafe(JsonNode node, String field) {
+        if (node == null || node.get(field) == null || node.get(field).isNull()) {
+            return "Unknown";
         }
         return node.get(field).asText();
     }
