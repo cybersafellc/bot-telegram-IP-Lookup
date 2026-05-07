@@ -11,14 +11,9 @@ import com.pengrad.telegrambot.model.request.ParseMode;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.response.SendResponse;
 import org.ip_lookup.Main;
-import org.ip_lookup.Secret;
 
 import java.io.IOException;
 import java.lang.Exception;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,18 +33,19 @@ public class Listen  implements UpdatesListener{
                 if(validation(message)){
                     String result = null;
                     try {
-//                        result = formatJson(lookupv2(message));
-                          result = formatJson(lookupv2(message));
+                          result = prettyJson(lookupv2(message));
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
-                    response = Main.bot.execute(
-                            new SendMessage(chatId, result)
-                    );
+                    SendMessage msg = new SendMessage(chatId, "```json\n" +
+                            escapeMarkdownV2(result) +
+                            "\n```");
+                    msg.setParseMode(ParseMode.MarkdownV2);
+                    response = Main.bot.execute(msg);
                 }else{
                     response = Main.bot.execute(new SendMessage(chatId, "The format incorect, please input valid ip address\nExamlple : 34.120.22.1"));
                 }
-                System.out.println(response.isOk());
+                System.out.println(response.description());
             }
         }
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
@@ -87,20 +83,7 @@ public class Listen  implements UpdatesListener{
 
         return datas.toString();
     }
-    public String lookup(String ipAdress) {
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(new Secret().getInternalApiLookup() + ipAdress)).GET().build();
-        HttpResponse<String> response = null;
-        try {
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        return response.body();
 
-    }
     public boolean validation(String ipAddress) {
         if (ipAddress == null || ipAddress.isBlank()) {
             return false;
@@ -153,83 +136,40 @@ public class Listen  implements UpdatesListener{
         return true;
     }
 
-    public static String formatJson(String json) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode root = mapper.readTree(json);
-
-            JsonNode asnNode = root.get(0);
-            JsonNode cityNode = root.get(1);
-            JsonNode countryNode = root.get(2);
-
-            JsonNode city = cityNode.get("city");
-            JsonNode country = cityNode.get("country");
-            JsonNode continent = cityNode.get("continent");
-            JsonNode location = cityNode.get("location");
-            JsonNode postal = cityNode.get("postal");
-            JsonNode traits = cityNode.get("traits");
-            JsonNode registered = cityNode.get("registered_country");
-
-            // subdivision
-            String regionName = "Unknown";
-            String regionCode = "Unknown";
-            if (cityNode.has("subdivisions") && cityNode.get("subdivisions").size() > 0) {
-                JsonNode sub = cityNode.get("subdivisions").get(0);
-                regionName = getSafe(sub.get("names"), "en");
-                regionCode = getSafe(sub, "iso_code");
-            }
-
-            return "🌐 *IP Lookup Result*\n\n"
-
-                    + "📌 *Basic Info*\n"
-                    + "IP              : " + getSafe(asnNode, "ip_address") + "\n"
-                    + "Network         : " + getSafe(asnNode, "network") + "\n"
-                    + "ASN             : " + getSafe(asnNode, "autonomous_system_number") + "\n"
-                    + "Organization    : " + getSafe(asnNode, "autonomous_system_organization") + "\n\n"
-
-                    + "🌍 *Location*\n"
-                    + "Continent       : " + getSafe(continent.get("names"), "en") + " (" + getSafe(continent, "code") + ")\n"
-                    + "Country         : " + getSafe(country.get("names"), "en") + " (" + getSafe(country, "iso_code") + ")\n"
-                    + "Registered Ctry : " + getSafe(registered.get("names"), "en") + "\n"
-                    + "Region          : " + regionName + " (" + regionCode + ")\n"
-                    + "City            : " + getSafe(city.get("names"), "en") + "\n"
-                    + "Postal Code     : " + getSafe(postal, "code") + "\n\n"
-
-                    + "📍 *Coordinates*\n"
-                    + "Latitude        : " + getSafe(location, "latitude") + "\n"
-                    + "Longitude       : " + getSafe(location, "longitude") + "\n"
-                    + "Accuracy Radius : " + getSafe(location, "accuracy_radius") + "\n"
-                    + "Metro Code      : " + getSafe(location, "metro_code") + "\n"
-                    + "Timezone        : " + getSafe(location, "time_zone") + "\n\n"
-
-                    + "🧠 *Traits (FULL)*\n"
-                    + "IP              : " + getSafe(traits, "ip_address") + "\n"
-                    + "Network         : " + getSafe(traits, "network") + "\n"
-                    + "Anonymous       : " + getSafe(traits, "is_anonymous") + "\n"
-                    + "Anonymous Proxy : " + getSafe(traits, "is_anonymous_proxy") + "\n"
-                    + "Anonymous VPN   : " + getSafe(traits, "is_anonymous_vpn") + "\n"
-                    + "Anycast         : " + getSafe(traits, "is_anycast") + "\n"
-                    + "Hosting         : " + getSafe(traits, "is_hosting_provider") + "\n"
-                    + "Legit Proxy     : " + getSafe(traits, "is_legitimate_proxy") + "\n"
-                    + "Public Proxy    : " + getSafe(traits, "is_public_proxy") + "\n"
-                    + "Residential     : " + getSafe(traits, "is_residential_proxy") + "\n"
-                    + "Satellite       : " + getSafe(traits, "is_satellite_provider") + "\n"
-                    + "Tor Exit        : " + getSafe(traits, "is_tor_exit_node") + "\n\n"
-
-                    + "🔎 *Geo Metadata*\n"
-                    + "City GeoID      : " + getSafe(city, "geoname_id") + "\n"
-                    + "Country GeoID   : " + getSafe(country, "geoname_id") + "\n"
-                    + "Continent GeoID : " + getSafe(continent, "geoname_id") + "\n";
-
-        } catch (Exception e) {
-            return "❌ Gagal parsing JSON";
-        }
+    public String escapeMarkdownV2(String text) {
+        return text
+                .replace("\\", "\\\\")
+                .replace("_", "\\_")
+                .replace("*", "\\*")
+                .replace("[", "\\[")
+                .replace("]", "\\]")
+                .replace("(", "\\(")
+                .replace(")", "\\)")
+                .replace("~", "\\~")
+                .replace("`", "\\`")
+                .replace(">", "\\>")
+                .replace("#", "\\#")
+                .replace("+", "\\+")
+                .replace("-", "\\-")
+                .replace("=", "\\=")
+                .replace("|", "\\|")
+                .replace("{", "\\{")
+                .replace("}", "\\}")
+                .replace(".", "\\.")
+                .replace("!", "\\!");
     }
 
-    public static String getSafe(JsonNode node, String field) {
-        if (node == null || node.get(field) == null || node.get(field).isNull()) {
-            return "Unknown";
+    public static String prettyJson(String json) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+
+            Object obj = mapper.readValue(json, Object.class);
+
+            return mapper.writerWithDefaultPrettyPrinter()
+                    .writeValueAsString(obj);
+
+        } catch (Exception e) {
+            return "Invalid JSON";
         }
-        return node.get(field).asText();
     }
 }
