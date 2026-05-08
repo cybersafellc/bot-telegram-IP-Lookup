@@ -10,6 +10,7 @@ import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.model.request.ParseMode;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.response.SendResponse;
+import org.ip_lookup.Connections;
 import org.ip_lookup.Main;
 
 import java.io.IOException;
@@ -23,6 +24,14 @@ import java.io.File;
 import java.net.InetAddress;
 
 public class Listen  implements UpdatesListener{
+    private Connections databases;
+    private ObjectMapper maper;
+
+    public Listen(){
+        this.databases = new Connections();
+        this.maper = new ObjectMapper();
+    }
+
     @Override
     public int process(List<Update> updates) {
         for(Update update : updates){
@@ -32,8 +41,12 @@ public class Listen  implements UpdatesListener{
                 SendResponse response;
                 if(validation(message)){
                     String result = null;
+                    boolean isRom = false;
                     try {
                           result = prettyJson(lookupv2(message));
+                          JsonNode node = maper.readTree(result);
+                          int asn = node.get(0).get("autonomous_system_number").asInt();
+                          isRom = databases.get("AS" + asn);
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -41,7 +54,9 @@ public class Listen  implements UpdatesListener{
                             escapeMarkdownV2(result) +
                             "\n```");
                     msg.setParseMode(ParseMode.MarkdownV2);
+                    SendMessage msg1 = new SendMessage(chatId, "resedentila or mobile : " + isRom );
                     response = Main.bot.execute(msg);
+                    Main.bot.execute(msg1);
                 }else{
                     response = Main.bot.execute(new SendMessage(chatId, "The format incorect, please input valid ip address\nExamlple : 34.120.22.1"));
                 }

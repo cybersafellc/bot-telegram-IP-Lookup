@@ -4,13 +4,10 @@ import com.pengrad.telegrambot.TelegramBot;
 import org.ip_lookup.callbaks.Exception;
 import org.ip_lookup.callbaks.Listen;
 
-import org.ip_lookup.Connections;
-
 public class Main {
     private static String apikey = System.getenv("APIKEY_BOT");
     public static TelegramBot bot = new TelegramBot(apikey);
     static void main() {
         bot.setUpdatesListener(new Listen(), new Exception());
-        new Connections();
     }
 }
