@@ -10,7 +10,7 @@ import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.model.request.ParseMode;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.response.SendResponse;
-import org.ip_lookup.Connections;
+import org.ip_lookup.model.Connections;
 import org.ip_lookup.Main;
 
 import java.io.IOException;

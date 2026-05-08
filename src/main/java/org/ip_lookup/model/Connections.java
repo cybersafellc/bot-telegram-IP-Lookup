@@ -1,4 +1,4 @@
-package org.ip_lookup;
+package org.ip_lookup.model;
 
 import java.sql.*;
 import java.util.ArrayList;
