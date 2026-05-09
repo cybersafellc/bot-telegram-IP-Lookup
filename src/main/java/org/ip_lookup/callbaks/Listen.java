@@ -24,8 +24,8 @@ import java.io.File;
 import java.net.InetAddress;
 
 public class Listen  implements UpdatesListener{
-    private Connections databases;
-    private ObjectMapper maper;
+    final private Connections databases;
+    final private ObjectMapper maper;
 
     public Listen(){
         this.databases = new Connections();
@@ -69,6 +69,7 @@ public class Listen  implements UpdatesListener{
         }
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
     }
+
     public String lookupv2 (String ipAddress) throws IOException {
         File dbAsn = new File("geolite2-db/GeoLite2-ASN.mmdb");
         File dbCity = new File("geolite2-db/GeoLite2-City.mmdb");
