@@ -32,43 +32,6 @@ public class Lookup{
         maper = new ObjectMapper();
     }
 
-    public int process(List<Update> updates) {
-        try {
-            for(Update update : updates){
-                if(update.message() != null){
-                    long chatId = update.message().chat().id();
-                    String message = update.message().text();
-                    SendResponse response;
-                    if(validation(message)){
-                        String result = null;
-                        boolean isRom = false;
-                        try {
-                            result = prettyJson(lookupv2(message));
-                            JsonNode node = maper.readTree(result);
-                            int asn = node.get(0).get("autonomous_system_number").asInt();
-                            isRom = databases.get("AS" + asn);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                        SendMessage msg = new SendMessage(chatId, "```json\n" +
-                                escapeMarkdownV2(result) +
-                                "\n```");
-                        msg.setParseMode(ParseMode.MarkdownV2);
-                        SendMessage msg1 = new SendMessage(chatId, "resedentila or mobile : " + isRom );
-                        response = Main.bot.execute(msg);
-                        Main.bot.execute(msg1);
-                    }else{
-                        response = Main.bot.execute(new SendMessage(chatId, "The format incorect, please input valid ip address\nExamlple : 34.120.22.1"));
-                    }
-                    System.out.println(response.description());
-                }
-            }
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-        return UpdatesListener.CONFIRMED_UPDATES_ALL;
-    }
-
     public static String lookupv2 (String ipAddress) throws IOException {
         File dbAsn = new File("geolite2-db/GeoLite2-ASN.mmdb");
         File dbCity = new File("geolite2-db/GeoLite2-City.mmdb");
