@@ -5,7 +5,9 @@ import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.TelegramException;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.Update;
+import com.pengrad.telegrambot.request.SendMessage;
 import org.ip_lookup.controllers.IpLookup;
+import org.ip_lookup.controllers.ProxyLookup;
 import org.ip_lookup.controllers.StartControllers;
 import org.ip_lookup.interfaces.Routers;
 import org.ip_lookup.route.Route;
@@ -34,6 +36,7 @@ public class Main {
             router.setStartMessage(startMessage);
             router.setHandler("/start", new StartControllers());
             router.setHandler("/ip_lookup", new IpLookup());
+            router.setHandler("/ip_proxy_validator", new ProxyLookup());
             // end setup controller/s
         } catch (Exception e) {
             System.out.println("[!] " + e.getMessage());
@@ -47,12 +50,16 @@ public class Main {
             bot.setUpdatesListener(new UpdatesListener() {
                 @Override
                 public int process(List<Update> updates) {
-                    for(Update update : updates){
-                        if(update.message() != null){
-                            router.getHandler(update);
+                        for(Update update : updates){
+                            if(update.message() != null){
+                                try {
+                                    router.getHandler(update);
+                                } catch (Exception e) {
+                                    bot.execute(new SendMessage(update.message().chat().id(), e.getMessage()));
+                                }
+                            }
                         }
-                    }
-                    return UpdatesListener.CONFIRMED_UPDATES_ALL;
+                        return UpdatesListener.CONFIRMED_UPDATES_ALL;
                 }
             }, new ExceptionHandler() {
                 @Override

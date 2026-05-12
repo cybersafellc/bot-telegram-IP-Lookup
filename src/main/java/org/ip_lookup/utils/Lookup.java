@@ -24,8 +24,8 @@ import java.io.File;
 import java.net.InetAddress;
 
 public class Lookup{
-    final static Connections databases;
-    final static ObjectMapper maper;
+    public final static Connections databases;
+    public final static ObjectMapper maper;
 
     static {
         databases = new Connections();
