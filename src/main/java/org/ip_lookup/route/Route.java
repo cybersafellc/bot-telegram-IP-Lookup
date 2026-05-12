@@ -15,24 +15,36 @@ public class Route implements Routers {
     private final TelegramBot bot;
     private final Map<String, Controllers> router = new HashMap<>();
     private final Map<String, Controllers> exeChatId = new HashMap<>();
+    private String startMessage;
 
-    Route(TelegramBot bot){
+    public Route(TelegramBot bot){
         this.bot = bot;
     }
 
+    @Override
     public void setHandler(String route, Controllers controller){
+        if(startMessage == null){
+            throw new RuntimeException("Please set start message first");
+        }
         this.router.put(route, controller);
     }
 
+    @Override
+    public void setStartMessage(String message) {
+        this.startMessage = message;
+    }
+
+    @Override
     public void getHandler(Update update){
         String route = update.message().text();
         String chatId = String.valueOf(update.message().chat().id());
 
         Controllers controller = exeChatId.get(chatId);
 
-        if(!route.contains("/")){ // uji 1
+        if(!route.contains("/")){
             if(controller == null){
-                bot.execute(new SendMessage(chatId, "please sent parameters first")); // uji 1
+                bot.execute(new SendMessage(chatId, "Please sent parameters first !"));
+                bot.execute(new SendMessage(chatId, startMessage));
                 return;
             }
             controller.handler(update, bot);
@@ -41,10 +53,11 @@ public class Route implements Routers {
 
         Controllers controllerToSet = router.get(route);
         if(controllerToSet == null){
-            bot.execute(new SendMessage(chatId, "please sent valid parameters"));
+            bot.execute(new SendMessage(chatId, "Please sent valid parameters !"));
+            bot.execute(new SendMessage(chatId, startMessage));
         }else{
             exeChatId.put(chatId, controllerToSet);
-            controllerToSet.start(update, bot); // wajib selesaikan ini
+            controllerToSet.start(update, bot);
         }
     }
 }
