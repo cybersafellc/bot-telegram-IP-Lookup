@@ -11,7 +11,7 @@ public class Connections {
         String pass = System.getenv("MYSQL_PASS");
         try {
             this.conn = DriverManager.getConnection(url, user, pass);
-            System.out.println("berhasil koneksi ke database");
+            System.out.println("[~] Mysql authentication & create connection success");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
