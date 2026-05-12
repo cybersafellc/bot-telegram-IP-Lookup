@@ -1,4 +1,4 @@
-package org.ip_lookup.callbaks;
+package org.ip_lookup.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,16 +23,15 @@ import com.maxmind.geoip2.model.AsnResponse;
 import java.io.File;
 import java.net.InetAddress;
 
-public class Listen  implements UpdatesListener{
-    final private Connections databases;
-    final private ObjectMapper maper;
+public class Lookup{
+    final static Connections databases;
+    final static ObjectMapper maper;
 
-    public Listen(){
-        this.databases = new Connections();
-        this.maper = new ObjectMapper();
+    static {
+        databases = new Connections();
+        maper = new ObjectMapper();
     }
 
-    @Override
     public int process(List<Update> updates) {
         try {
             for(Update update : updates){
@@ -70,7 +69,7 @@ public class Listen  implements UpdatesListener{
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
     }
 
-    public String lookupv2 (String ipAddress) throws IOException {
+    public static String lookupv2 (String ipAddress) throws IOException {
         File dbAsn = new File("geolite2-db/GeoLite2-ASN.mmdb");
         File dbCity = new File("geolite2-db/GeoLite2-City.mmdb");
         File dbCountry = new File("geolite2-db/GeoLite2-Country.mmdb");
@@ -104,7 +103,7 @@ public class Listen  implements UpdatesListener{
         return datas.toString();
     }
 
-    public boolean validation(String ipAddress) {
+    public static boolean validation(String ipAddress) {
         if (ipAddress == null || ipAddress.isBlank()) {
             return false;
         }
@@ -156,7 +155,7 @@ public class Listen  implements UpdatesListener{
         return true;
     }
 
-    public String escapeMarkdownV2(String text) {
+    public static String escapeMarkdownV2(String text) {
         return text
                 .replace("\\", "\\\\")
                 .replace("_", "\\_")
