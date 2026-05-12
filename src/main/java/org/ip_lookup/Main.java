@@ -5,7 +5,7 @@ import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.TelegramException;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.Update;
-import org.ip_lookup.callbaks.Listen;
+import org.ip_lookup.controllers.IpLookup;
 import org.ip_lookup.controllers.StartControllers;
 import org.ip_lookup.interfaces.Routers;
 import org.ip_lookup.route.Route;
@@ -33,6 +33,7 @@ public class Main {
             router = new Route(bot);
             router.setStartMessage(startMessage);
             router.setHandler("/start", new StartControllers());
+            router.setHandler("/ip_lookup", new IpLookup());
             // end setup controller/s
         } catch (Exception e) {
             System.out.println("[!] " + e.getMessage());
