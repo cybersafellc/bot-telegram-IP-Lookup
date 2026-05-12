@@ -3,9 +3,12 @@ package org.ip_lookup;
 import com.pengrad.telegrambot.ExceptionHandler;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.TelegramException;
+import com.pengrad.telegrambot.UpdatesListener;
+import com.pengrad.telegrambot.model.Update;
 import org.ip_lookup.callbaks.Listen;
 
 import java.io.IOException;
+import java.util.List;
 
 public class Main {
     private static String apikey;
@@ -27,10 +30,28 @@ public class Main {
     static void main() {
         try {
             System.out.println("[~] Bot setup Listener Process...");
-            bot.setUpdatesListener(new Listen(), new ExceptionHandler(){
+            bot.setUpdatesListener(new UpdatesListener() {
                 @Override
-                public void onException(TelegramException e){
-
+                public int process(List<Update> updates) {
+                    for(Update update : updates){
+                        if(update.message() != null){
+                            long chatId = update.message().chat().id();
+                            String message = update.message().text();
+                            System.out.println(chatId);
+                            System.out.println(message);
+                        }
+                    }
+                    return UpdatesListener.CONFIRMED_UPDATES_ALL;
+                }
+            }, new ExceptionHandler() {
+                @Override
+                public void onException(TelegramException e) {
+                    if (e.response() != null) {
+                        e.response().errorCode();
+                        e.response().description();
+                    } else {
+                        e.printStackTrace();
+                    }
                 }
             });
         } catch (Exception e) {
