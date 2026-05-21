@@ -37,7 +37,7 @@ public class Main {
             router.setHandler("/start", new StartControllers());
             router.setHandler("/ip_lookup", new IpLookup());
             router.setHandler("/ip_proxy_validator", new ProxyLookup());
-            // end setup controller/s
+            // end setup controller
         } catch (Exception e) {
             System.out.println("[!] " + e.getMessage());
             throw new RuntimeException(e);

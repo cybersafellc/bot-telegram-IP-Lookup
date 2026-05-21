@@ -1,22 +1,16 @@
 package org.ip_lookup.utils;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CityResponse;
 import com.maxmind.geoip2.model.CountryResponse;
-import com.pengrad.telegrambot.UpdatesListener;
-import com.pengrad.telegrambot.model.Update;
-import com.pengrad.telegrambot.model.request.ParseMode;
-import com.pengrad.telegrambot.request.SendMessage;
-import com.pengrad.telegrambot.response.SendResponse;
+import org.antibot.BotKiller;
 import org.ip_lookup.model.Connections;
-import org.ip_lookup.Main;
 
 import java.io.IOException;
 import java.lang.Exception;
+import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.List;
 
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.model.AsnResponse;
@@ -26,43 +20,24 @@ import java.net.InetAddress;
 public class Lookup{
     public final static Connections databases;
     public final static ObjectMapper maper;
+    public final static BotKiller botKiller;
 
     static {
         databases = new Connections();
         maper = new ObjectMapper();
+        try {
+            botKiller = new BotKiller();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static String lookupv2 (String ipAddress) throws IOException {
-        File dbAsn = new File("geolite2-db/GeoLite2-ASN.mmdb");
-        File dbCity = new File("geolite2-db/GeoLite2-City.mmdb");
-        File dbCountry = new File("geolite2-db/GeoLite2-Country.mmdb");
-
         ArrayList<String> datas = new ArrayList<>();
-
-        try(DatabaseReader reader = new DatabaseReader.Builder(dbAsn).build()){
-            InetAddress ipAddr = InetAddress.getByName(ipAddress);
-            AsnResponse response = reader.asn(ipAddr);
-            datas.add(response.toJson());
-        } catch (GeoIp2Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        try(DatabaseReader reader = new DatabaseReader.Builder(dbCity).build()){
-            InetAddress ipAddr = InetAddress.getByName(ipAddress);
-            CityResponse response = reader.city(ipAddr);
-            datas.add(response.toJson());
-        } catch (GeoIp2Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        try(DatabaseReader reader = new DatabaseReader.Builder(dbCountry).build()){
-            InetAddress ipAddr = InetAddress.getByName(ipAddress);
-            CountryResponse response = reader.country(ipAddr);
-            datas.add(response.toJson());
-        } catch (GeoIp2Exception e) {
-            throw new RuntimeException(e);
-        }
-
+        datas.add(botKiller.asnLookupJson(ipAddress));
+        datas.add(botKiller.cityLookupJson(ipAddress));
+        datas.add(botKiller.countryLookupJson(ipAddress));
+        datas.add(botKiller.romCheckerJson(ipAddress));
         return datas.toString();
     }
 
@@ -70,19 +45,16 @@ public class Lookup{
         if (ipAddress == null || ipAddress.isBlank()) {
             return false;
         }
-
         String[] parts = ipAddress.split("\\.");
         if (parts.length != 4) {
             return false;
         }
-
         int[] nums = new int[4];
 
         for (int i = 0; i < 4; i++) {
             if (!parts[i].matches("\\d+")) {
                 return false;
             }
-
             if (parts[i].length() > 1 && parts[i].startsWith("0")) {
                 return false;
             }
