@@ -10,8 +10,6 @@ import org.ip_lookup.utils.Lookup;
 
 import java.io.IOException;
 
-import static org.ip_lookup.utils.Lookup.databases;
-
 public class ProxyLookup implements Controllers {
 
     @Override
@@ -24,12 +22,13 @@ public class ProxyLookup implements Controllers {
             return;
         }
         try{
-            String result = Lookup.prettyJson(Lookup.lookupv2(ipAddress));
-            JsonNode node = Lookup.maper.readTree(result);
-            int asn = node.get(0).get("autonomous_system_number").asInt();
-            boolean isRom = Lookup.databases.get("AS" + asn);
-            bot.execute(new SendMessage(chatId, ipAddress + " = " + (isRom ? "Resedentials or Mobile" : "Proxy")));
-        } catch (IOException e) {
+            String result = Lookup.prettyJson(Lookup.proxyLookup(ipAddress));
+            SendMessage msg = new SendMessage(chatId, "```json\n" +
+                    Lookup.escapeMarkdownV2(result) +
+                    "\n```");
+            msg.setParseMode(ParseMode.MarkdownV2);
+            bot.execute(msg);
+        } catch (Exception e) {
             bot.execute(new SendMessage(chatId, e.getMessage()));
         }
     }
