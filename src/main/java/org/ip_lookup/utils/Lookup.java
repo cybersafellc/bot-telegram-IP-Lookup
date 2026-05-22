@@ -5,7 +5,7 @@ import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CityResponse;
 import com.maxmind.geoip2.model.CountryResponse;
 import org.antibot.BotKiller;
-import org.ip_lookup.model.Connections;
+import org.antibot.Interface.ConfigSetup;
 
 import java.io.IOException;
 import java.lang.Exception;
@@ -18,15 +18,51 @@ import java.io.File;
 import java.net.InetAddress;
 
 public class Lookup{
-    public final static Connections databases;
     public final static ObjectMapper maper;
     public final static BotKiller botKiller;
 
     static {
-        databases = new Connections();
         maper = new ObjectMapper();
         try {
-            botKiller = new BotKiller();
+            botKiller = new BotKiller(new ConfigSetup() {
+                private final String mysqlUsername = System.getenv("USER_MYSQL");
+                private final String mysqlPassword = System.getenv("PASS_MYSQL");
+                private final String mysqlHost = System.getenv("HOST_MYSQL");
+
+                private final String asnPath = "geolite2-db/GeoLite2-ASN.mmdb";
+                private final String cityPath = "geolite2-db/GeoLite2-City.mmdb";
+                private final String countryPath = "geolite2-db/GeoLite2-Country.mmdb";
+
+                @Override
+                public String getMysqlUsername() {
+                    return mysqlUsername;
+                }
+
+                @Override
+                public String getMysqlPassword() {
+                    return mysqlPassword;
+                }
+
+                @Override
+                public String getMysqlHost() {
+                    return mysqlHost;
+                }
+
+                @Override
+                public String getAsnPath() {
+                    return asnPath;
+                }
+
+                @Override
+                public String getCityPath() {
+                    return cityPath;
+                }
+
+                @Override
+                public String getCountryPath() {
+                    return countryPath;
+                }
+            });
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -39,6 +75,10 @@ public class Lookup{
         datas.add(botKiller.countryLookupJson(ipAddress));
         datas.add(botKiller.romCheckerJson(ipAddress));
         return datas.toString();
+    }
+
+    public static String proxyLookup(String ipAddresss) {
+        return botKiller.romCheckerJson(ipAddresss);
     }
 
     public static boolean validation(String ipAddress) {
